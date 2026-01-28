@@ -810,7 +810,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, push, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, push, set, onValue, remove, update, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
         // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
         const firebaseConfig = {
@@ -845,6 +845,7 @@
         window.firebaseOnValue = onValue;
         window.firebaseRemove = remove;
         window.firebaseUpdate = update;
+        window.firebaseGet = get;
         window.isFirebaseConfigured = isConfigured;
 
         // Load listings from Firebase
@@ -1420,7 +1421,7 @@
             submitBtn.textContent = 'Sending...';
 
             // Always use regular SMS via the buyer's default messaging app
-            const success = sendViaManualSMS(name, message);
+            const success = await sendViaManualSMS(name, message);
 
             // Re-enable button with state based on result
             submitBtn.disabled = false;
@@ -1503,11 +1504,26 @@
             }
         }
 
-        function sendViaManualSMS(name, message) {
-            const targetPhone =
+        async function sendViaManualSMS(name, message) {
+            let targetPhone =
                 (currentListing && currentListing.sellerPhone) ||
                 publicSellerPhone ||
                 adminPhone;
+
+            // If not loaded yet, fetch on-demand from Firebase (avoids race with onValue)
+            if (!targetPhone && window.isFirebaseConfigured && window.firebaseDB && window.firebaseGet) {
+                try {
+                    const configRef = window.firebaseRef(window.firebaseDB, 'config/adminPhone');
+                    const snap = await window.firebaseGet(configRef);
+                    const val = snap.val();
+                    if (typeof val === 'string' && val.trim()) {
+                        publicSellerPhone = val.trim();
+                        targetPhone = publicSellerPhone;
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch public seller phone:', e);
+                }
+            }
 
             if (!targetPhone) {
                 alert('⚠️ Seller contact information not configured. Please ask the seller/admin to set their phone number.');
