@@ -20,6 +20,7 @@
             --gray-100: #f3f4f6;
             --gray-200: #e5e7eb;
             --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
             --gray-600: #4b5563;
             --gray-700: #374151;
             --gray-800: #1f2937;
@@ -103,6 +104,7 @@
 
         input[type="text"],
         input[type="number"],
+        input[type="password"],
         textarea,
         input[type="file"],
         input[type="tel"] {
@@ -139,6 +141,11 @@
 
         .btn:hover {
             background: #059669;
+        }
+
+        .btn:disabled {
+            background: var(--gray-400);
+            cursor: not-allowed;
         }
 
         .btn-danger {
@@ -267,36 +274,51 @@
             transform: scale(1.2);
         }
 
-        .image-preview-item {
-            position: relative;
-            width: 100px;
-            height: 100px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 2px solid var(--gray-300);
+        .thumbnail-gallery {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            overflow-x: auto;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
         }
 
-        .image-preview-item img {
+        .thumbnail-gallery::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .thumbnail-gallery::-webkit-scrollbar-thumb {
+            background: var(--gray-400);
+            border-radius: 3px;
+        }
+
+        .thumbnail-item {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            opacity: 0.6;
+        }
+
+        .thumbnail-item:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .thumbnail-item.active {
+            border-color: var(--primary);
+            opacity: 1;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .thumbnail-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-
-        .image-preview-remove {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: var(--danger);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            font-size: 0.8em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .listing-content {
@@ -402,6 +424,58 @@
             margin-bottom: 15px;
         }
 
+        .setup-warning {
+            background: #ffe6e6;
+            border: 2px solid #ff6b6b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .setup-warning h3 {
+            color: #c92a2a;
+            margin-bottom: 10px;
+        }
+
+        .image-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--gray-300);
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2em;
@@ -419,6 +493,12 @@
             <h1>🏡 NeighborGoods</h1>
             <p class="subtitle">Your Neighborhood Marketplace</p>
         </header>
+
+        <div id="setupWarning" class="setup-warning" style="display: none;">
+            <h3>⚠️ Firebase Not Configured</h3>
+            <p>Please follow the setup instructions in the README to configure Firebase.</p>
+            <p style="margin-top: 10px;"><strong>Without Firebase, listings won't be shared with neighbors.</strong></p>
+        </div>
 
         <div class="admin-section">
             <button class="admin-toggle" onclick="toggleAdmin()">👤 Admin Login</button>
@@ -479,13 +559,74 @@
                         <div id="imagePreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px;"></div>
                     </div>
                     
-                    <button type="submit" class="btn">📤 Post Item</button>
+                    <button type="submit" class="btn" id="postBtn">📤 Post Item</button>
                 </form>
             </div>
         </div>
 
-        <div id="listings" class="listings-grid"></div>
+        <div id="loading" class="loading">Loading listings...</div>
+        <div id="listings" class="listings-grid" style="display: none;"></div>
     </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Firebase configuration - REPLACE WITH YOUR CONFIG
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Check if Firebase is configured
+        const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+        
+        let app, database;
+        
+        if (isConfigured) {
+            app = initializeApp(firebaseConfig);
+            database = getDatabase(app);
+            document.getElementById('setupWarning').style.display = 'none';
+        } else {
+            document.getElementById('setupWarning').style.display = 'block';
+            document.getElementById('loading').innerHTML = '⚠️ Firebase not configured. Check README for setup instructions.';
+        }
+
+        // Make Firebase available globally
+        window.firebaseDB = database;
+        window.firebaseRef = ref;
+        window.firebasePush = push;
+        window.firebaseSet = set;
+        window.firebaseOnValue = onValue;
+        window.firebaseRemove = remove;
+        window.firebaseUpdate = update;
+        window.isFirebaseConfigured = isConfigured;
+
+        // Load listings from Firebase
+        if (isConfigured) {
+            const listingsRef = ref(database, 'listings');
+            onValue(listingsRef, (snapshot) => {
+                const data = snapshot.val();
+                const listings = data ? Object.entries(data).map(([id, listing]) => ({
+                    ...listing,
+                    firebaseId: id
+                })) : [];
+                
+                // Sort by creation date (newest first)
+                listings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                window.displayListings(listings);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('listings').style.display = 'grid';
+            });
+        }
+    </script>
 
     <script>
         // Configuration
@@ -584,10 +725,7 @@
 
         function toggleAdmin() {
             if (!isAdminMode) {
-                // Prompt for password when trying to access admin
                 const password = prompt('🔐 Enter Admin Password:');
-                
-                // Get stored password or use default
                 const adminPassword = localStorage.getItem('adminPassword') || 'admin123';
                 
                 if (password !== adminPassword) {
@@ -602,11 +740,19 @@
             
             const form = document.getElementById('adminForm');
             form.classList.toggle('active');
-            displayListings(); // Refresh to show/hide delete buttons
+            
+            // Refresh display to show/hide admin buttons
+            const event = new Event('admin-toggle');
+            window.dispatchEvent(event);
         }
 
         function addListing(e) {
             e.preventDefault();
+            
+            if (!window.isFirebaseConfigured) {
+                alert('⚠️ Firebase is not configured. Please set up Firebase first.');
+                return;
+            }
             
             if (!adminPhone) {
                 alert('⚠️ Please configure your phone number first!');
@@ -628,6 +774,11 @@
                 return;
             }
             
+            // Disable submit button
+            const postBtn = document.getElementById('postBtn');
+            postBtn.disabled = true;
+            postBtn.textContent = '📤 Uploading...';
+            
             // Read all images
             const imagePromises = imageFiles.map(file => {
                 return new Promise((resolve, reject) => {
@@ -640,62 +791,71 @@
             
             Promise.all(imagePromises).then(images => {
                 const listing = {
-                    id: Date.now(),
                     title: title,
                     price: parseFloat(price),
                     description: description,
-                    images: images, // Array of images
+                    images: images,
                     createdAt: new Date().toISOString(),
                     sold: false
                 };
                 
-                const listings = getListings();
-                listings.unshift(listing);
-                localStorage.setItem('listings', JSON.stringify(listings));
-                
-                // Reset form
-                e.target.reset();
-                document.getElementById('imagePreview').innerHTML = '';
-                
-                // Refresh display
-                displayListings();
-                
-                alert('✅ Item posted successfully!');
+                // Push to Firebase
+                const listingsRef = window.firebaseRef(window.firebaseDB, 'listings');
+                window.firebasePush(listingsRef, listing)
+                    .then(() => {
+                        // Reset form
+                        e.target.reset();
+                        document.getElementById('imagePreview').innerHTML = '';
+                        postBtn.disabled = false;
+                        postBtn.textContent = '📤 Post Item';
+                        alert('✅ Item posted successfully!');
+                    })
+                    .catch(error => {
+                        console.error('Error adding listing:', error);
+                        alert('❌ Error posting item. Please try again.');
+                        postBtn.disabled = false;
+                        postBtn.textContent = '📤 Post Item';
+                    });
             }).catch(error => {
                 alert('❌ Error uploading images. Please try again.');
                 console.error(error);
+                postBtn.disabled = false;
+                postBtn.textContent = '📤 Post Item';
             });
         }
 
-        function getListings() {
-            const data = localStorage.getItem('listings');
-            return data ? JSON.parse(data) : [];
-        }
-
-        function deleteListing(id) {
-            if (confirm('Are you sure you want to delete this item?')) {
-                let listings = getListings();
-                listings = listings.filter(item => item.id !== id);
-                localStorage.setItem('listings', JSON.stringify(listings));
-                displayListings();
-            }
-        }
-
-        function toggleSold(id) {
-            let listings = getListings();
-            const listing = listings.find(item => item.id === id);
+        function deleteListing(firebaseId) {
+            if (!window.isFirebaseConfigured) return;
             
-            if (listing) {
-                listing.sold = !listing.sold;
-                localStorage.setItem('listings', JSON.stringify(listings));
-                displayListings();
-                
-                if (listing.sold) {
-                    alert('✅ Item marked as SOLD!');
-                } else {
-                    alert('✅ Item marked as AVAILABLE!');
-                }
+            if (confirm('Are you sure you want to delete this item?')) {
+                const listingRef = window.firebaseRef(window.firebaseDB, `listings/${firebaseId}`);
+                window.firebaseRemove(listingRef)
+                    .then(() => {
+                        alert('✅ Item deleted successfully!');
+                    })
+                    .catch(error => {
+                        console.error('Error deleting listing:', error);
+                        alert('❌ Error deleting item. Please try again.');
+                    });
             }
+        }
+
+        function toggleSold(firebaseId, currentStatus) {
+            if (!window.isFirebaseConfigured) return;
+            
+            const listingRef = window.firebaseRef(window.firebaseDB, `listings/${firebaseId}`);
+            window.firebaseUpdate(listingRef, { sold: !currentStatus })
+                .then(() => {
+                    if (!currentStatus) {
+                        alert('✅ Item marked as SOLD!');
+                    } else {
+                        alert('✅ Item marked as AVAILABLE!');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating listing:', error);
+                    alert('❌ Error updating item. Please try again.');
+                });
         }
 
         function expressInterest(listing) {
@@ -710,23 +870,16 @@
             const buyerPhone = prompt('Please enter your phone number:');
             if (!buyerPhone) return;
             
-            // Format SMS message
             const message = `Hi! I'm interested in: ${listing.title} ($${listing.price.toFixed(2)}). My name is ${buyerName} and my number is ${buyerPhone}.`;
-            
-            // Clean phone number for SMS link
             const cleanPhone = adminPhone.replace(/\D/g, '');
-            
-            // Create SMS link - works on both iOS and Android
             const smsLink = `sms:${cleanPhone}${/iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(message)}`;
             
-            // Open SMS app
             window.location.href = smsLink;
             
             alert(`✅ Your default messaging app will open. Send the pre-filled message to express interest!\n\nIf it doesn't open automatically, please text:\n${adminPhone}\n\nWith message:\n"${message}"`);
         }
 
-        function displayListings() {
-            const listings = getListings();
+        window.displayListings = function(listings) {
             const container = document.getElementById('listings');
             
             if (listings.length === 0) {
@@ -743,28 +896,35 @@
             }
             
             container.innerHTML = listings.map(listing => {
-                // Support both old single image and new multiple images format
                 const images = listing.images || [listing.image];
                 const imageGallery = images.length > 1 ? `
                     <div class="image-gallery">
                         ${images.map((img, idx) => `
                             <img src="${img}" alt="${listing.title} - Image ${idx + 1}" 
                                  class="gallery-image ${idx === 0 ? 'active' : ''}" 
-                                 data-listing="${listing.id}" 
+                                 data-listing="${listing.firebaseId}" 
                                  data-index="${idx}">
                         `).join('')}
-                        ${images.length > 1 ? `
-                            <button class="gallery-nav gallery-prev" onclick="changeImage(${listing.id}, -1)">‹</button>
-                            <button class="gallery-nav gallery-next" onclick="changeImage(${listing.id}, 1)">›</button>
-                            <div class="gallery-dots">
-                                ${images.map((_, idx) => `
-                                    <span class="gallery-dot ${idx === 0 ? 'active' : ''}" 
-                                          onclick="goToImage(${listing.id}, ${idx})"
-                                          data-listing="${listing.id}"
-                                          data-index="${idx}"></span>
-                                `).join('')}
+                        <button class="gallery-nav gallery-prev" onclick="changeImage('${listing.firebaseId}', -1)">‹</button>
+                        <button class="gallery-nav gallery-next" onclick="changeImage('${listing.firebaseId}', 1)">›</button>
+                        <div class="gallery-dots">
+                            ${images.map((_, idx) => `
+                                <span class="gallery-dot ${idx === 0 ? 'active' : ''}" 
+                                      onclick="goToImage('${listing.firebaseId}', ${idx})"
+                                      data-listing="${listing.firebaseId}"
+                                      data-index="${idx}"></span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="thumbnail-gallery">
+                        ${images.map((img, idx) => `
+                            <div class="thumbnail-item ${idx === 0 ? 'active' : ''}" 
+                                 onclick="goToImage('${listing.firebaseId}', ${idx})"
+                                 data-listing="${listing.firebaseId}"
+                                 data-index="${idx}">
+                                <img src="${img}" alt="Thumbnail ${idx + 1}">
                             </div>
-                        ` : ''}
+                        `).join('')}
                     </div>
                 ` : `
                     <img src="${images[0]}" alt="${listing.title}" class="listing-image">
@@ -787,23 +947,27 @@
                             </button>
                         `}
                         ${isAdminMode ? `
-                            <button class="btn sold-btn ${listing.sold ? 'mark-available' : ''}" onclick="toggleSold(${listing.id})">
+                            <button class="btn sold-btn ${listing.sold ? 'mark-available' : ''}" onclick="toggleSold('${listing.firebaseId}', ${listing.sold})">
                                 ${listing.sold ? '🔄 Mark as Available' : '✅ Mark as SOLD'}
                             </button>
-                            <button class="btn btn-danger delete-btn" onclick="deleteListing(${listing.id})">🗑️ Delete</button>
+                            <button class="btn btn-danger delete-btn" onclick="deleteListing('${listing.firebaseId}')">🗑️ Delete</button>
                         ` : ''}
                     </div>
                 </div>
             `}).join('');
-        }
+        };
 
-        // Initial display
-        displayListings();
+        // Listen for admin mode changes
+        window.addEventListener('admin-toggle', () => {
+            // Trigger a re-render by dispatching a custom event
+            // This will be picked up by Firebase's onValue listener
+        });
 
         // Gallery navigation functions
         function changeImage(listingId, direction) {
             const images = document.querySelectorAll(`img.gallery-image[data-listing="${listingId}"]`);
             const dots = document.querySelectorAll(`span.gallery-dot[data-listing="${listingId}"]`);
+            const thumbnails = document.querySelectorAll(`div.thumbnail-item[data-listing="${listingId}"]`);
             
             let currentIndex = 0;
             images.forEach((img, idx) => {
@@ -821,18 +985,35 @@
             
             dots[currentIndex].classList.remove('active');
             dots[newIndex].classList.add('active');
+            
+            thumbnails[currentIndex].classList.remove('active');
+            thumbnails[newIndex].classList.add('active');
+            
+            // Scroll thumbnail into view
+            thumbnails[newIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
 
         function goToImage(listingId, index) {
             const images = document.querySelectorAll(`img.gallery-image[data-listing="${listingId}"]`);
             const dots = document.querySelectorAll(`span.gallery-dot[data-listing="${listingId}"]`);
+            const thumbnails = document.querySelectorAll(`div.thumbnail-item[data-listing="${listingId}"]`);
             
             images.forEach(img => img.classList.remove('active'));
             dots.forEach(dot => dot.classList.remove('active'));
+            thumbnails.forEach(thumb => thumb.classList.remove('active'));
             
             images[index].classList.add('active');
             dots[index].classList.add('active');
+            thumbnails[index].classList.add('active');
+            
+            // Scroll thumbnail into view
+            if (thumbnails[index]) {
+                thumbnails[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
         }
+
+        window.changeImage = changeImage;
+        window.goToImage = goToImage;
     </script>
 </body>
 </html>
