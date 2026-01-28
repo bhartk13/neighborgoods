@@ -1052,17 +1052,24 @@
             handleImagePreview({ target: imageInput });
         }
 
-        function saveConfig() {
+        async function saveConfig() {
             const phone = document.getElementById('adminPhone').value.trim();
             if (phone) {
                 adminPhone = phone;
                 localStorage.setItem('adminPhone', phone);
+                // Make it available immediately on this page as well
+                publicSellerPhone = phone;
+
                 // Also publish to Firebase for buyers (required for manual SMS on public site)
                 if (window.isFirebaseConfigured && window.firebaseDB) {
                     const configRef = window.firebaseRef(window.firebaseDB, 'config/adminPhone');
-                    window.firebaseSet(configRef, phone).catch((e) => {
+                    try {
+                        await window.firebaseSet(configRef, phone);
+                    } catch (e) {
                         console.error('Failed to save public seller phone to Firebase:', e);
-                    });
+                        alert('⚠️ Saved on this device, but failed to publish to Firebase. Buyers may still see "contact not configured". Check Firebase DB rules / connectivity.');
+                        return;
+                    }
                 }
                 alert('✅ Contact configuration saved!');
             } else {
