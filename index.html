@@ -861,6 +861,8 @@
                 // Sort by creation date (newest first)
                 listings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 
+                // Cache latest listings so UI can re-render without waiting for Firebase changes
+                window.latestListings = listings;
                 window.displayListings(listings);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('listings').style.display = 'grid';
@@ -1662,8 +1664,10 @@
 
         // Listen for admin mode changes
         window.addEventListener('admin-toggle', () => {
-            // Trigger a re-render by dispatching a custom event
-            // This will be picked up by Firebase's onValue listener
+            // Re-render immediately (Firebase onValue won't fire just because admin mode changed)
+            if (Array.isArray(window.latestListings)) {
+                window.displayListings(window.latestListings);
+            }
         });
 
         // Gallery navigation functions
