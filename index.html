@@ -933,6 +933,31 @@
             }
         }
 
+        async function backfillSellerPhoneForListings(phone, oldPhone = '') {
+            try {
+                if (!window.isFirebaseConfigured || !window.firebaseDB || !window.firebaseGet) return;
+                const listingsRef = window.firebaseRef(window.firebaseDB, 'listings');
+                const snap = await window.firebaseGet(listingsRef);
+                const data = snap.val();
+                if (!data) return;
+
+                const updates = [];
+                for (const [id, listing] of Object.entries(data)) {
+                    if (!listing) continue;
+                    // Only update listings that don't have sellerPhone yet, or are still pointing at the previous phone.
+                    if (listing.sellerPhone && (!oldPhone || listing.sellerPhone !== oldPhone)) continue;
+                    const listingRef = window.firebaseRef(window.firebaseDB, `listings/${id}`);
+                    updates.push(window.firebaseUpdate(listingRef, { sellerPhone: phone }));
+                }
+
+                if (updates.length > 0) {
+                    await Promise.allSettled(updates);
+                }
+            } catch (e) {
+                console.error('Failed to backfill sellerPhone on listings:', e);
+            }
+        }
+
         function handleImagePreview(e) {
             const files = Array.from(e.target.files);
             const previewContainer = document.getElementById('imagePreview');
@@ -1055,6 +1080,7 @@
         async function saveConfig() {
             const phone = document.getElementById('adminPhone').value.trim();
             if (phone) {
+                const oldPhone = adminPhone;
                 adminPhone = phone;
                 localStorage.setItem('adminPhone', phone);
                 // Make it available immediately on this page as well
@@ -1071,6 +1097,10 @@
                         return;
                     }
                 }
+
+                // Update older listings that were created before we stored sellerPhone,
+                // and also update listings that still have the previous phone.
+                backfillSellerPhoneForListings(phone, oldPhone);
                 alert('✅ Contact configuration saved!');
             } else {
                 alert('⚠️ Please enter a phone number');
@@ -1512,10 +1542,11 @@
         }
 
         async function sendViaManualSMS(name, message) {
+            // Prefer the live published number (Firebase config) so changing it takes effect immediately for buyers.
             let targetPhone =
-                (currentListing && currentListing.sellerPhone) ||
                 publicSellerPhone ||
-                adminPhone;
+                adminPhone ||
+                (currentListing && currentListing.sellerPhone);
 
             // If not loaded yet, fetch on-demand from Firebase (avoids race with onValue)
             if (!targetPhone && window.isFirebaseConfigured && window.firebaseDB && window.firebaseGet) {
