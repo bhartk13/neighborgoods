@@ -568,23 +568,27 @@
         <div id="listings" class="listings-grid" style="display: none;"></div>
     </div>
 
-    <!-- HEIC to JPEG conversion library -->
-    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    <!-- HEIC to JPEG conversion library (more reliable version) -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.js"></script>
+
+    <!-- Firebase Config (loaded from external file - NOT committed to GitHub) -->
+    <script src="firebase-config.js"></script>
 
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, push, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        // Firebase configuration - REPLACE WITH YOUR CONFIG
-        const firebaseConfig = {
-        apiKey: "AIzaSyD-oFV6EIGAsp8t8iulmRg3ki1he-WvRJc",
-        authDomain: "neighborgoods-b9d6f.firebaseapp.com",
-        databaseURL: "https://neighborgoods-b9d6f-default-rtdb.firebaseio.com",
-        projectId: "neighborgoods-b9d6f",
-        storageBucket: "neighborgoods-b9d6f.firebasestorage.app",
-        messagingSenderId: "659200825421",
-        appId: "1:659200825421:web:11de2ff59de2e5f28ce404"
+        // Get Firebase configuration from external file
+        // This keeps your API keys safe and out of GitHub
+        const firebaseConfig = window.firebaseConfig || {
+            apiKey: "YOUR_AP",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         // Check if Firebase is configured
@@ -658,15 +662,22 @@
                 alert('Maximum 5 images allowed. First 5 will be used.');
             }
 
+            let heicCount = 0;
             files.slice(0, 5).forEach((file, index) => {
                 // Check if file is HEIC/HEIF
                 const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' || 
                                file.name.toLowerCase().endsWith('.heic') || 
                                file.name.toLowerCase().endsWith('.heif');
 
-                if (isHEIC && typeof heic2any !== 'undefined') {
-                    // Convert HEIC to JPEG
-                    heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+                if (isHEIC) {
+                    heicCount++;
+                    if (typeof heic2any !== 'undefined') {
+                        // Try to convert HEIC to JPEG
+                        heic2any({ 
+                            blob: file, 
+                            toType: 'image/jpeg', 
+                            quality: 0.8 
+                        })
                         .then(convertedBlob => {
                             const reader = new FileReader();
                             reader.onload = (event) => {
@@ -676,8 +687,11 @@
                         })
                         .catch(error => {
                             console.error('HEIC conversion failed:', error);
-                            alert(`Failed to convert HEIC image ${index + 1}. Please try converting it to JPEG first.`);
+                            addHEICWarning(index, previewContainer);
                         });
+                    } else {
+                        addHEICWarning(index, previewContainer);
+                    }
                 } else {
                     // Regular image formats
                     const reader = new FileReader();
@@ -687,6 +701,13 @@
                     reader.readAsDataURL(file);
                 }
             });
+
+            // Show warning if HEIC files detected
+            if (heicCount > 0) {
+                setTimeout(() => {
+                    showHEICInstructions();
+                }, 500);
+            }
         }
 
         function addPreviewImage(src, index, container) {
@@ -697,6 +718,43 @@
                 <button type="button" class="image-preview-remove" onclick="removePreviewImage(${index})">×</button>
             `;
             container.appendChild(div);
+        }
+
+        function addHEICWarning(index, container) {
+            const div = document.createElement('div');
+            div.className = 'image-preview-item';
+            div.style.background = '#ffe6e6';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'center';
+            div.style.fontSize = '0.8em';
+            div.style.color = '#c92a2a';
+            div.style.textAlign = 'center';
+            div.style.padding = '5px';
+            div.innerHTML = `
+                <div>HEIC<br>Format<br>⚠️</div>
+                <button type="button" class="image-preview-remove" onclick="removePreviewImage(${index})">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function showHEICInstructions() {
+            const hasValidImages = document.querySelectorAll('.image-preview-item img').length > 0;
+            
+            if (!hasValidImages) {
+                alert(`📱 iPhone HEIC Photos Detected!\n\n` +
+                      `HEIC files may not display properly in all browsers.\n\n` +
+                      `✅ RECOMMENDED SOLUTION:\n` +
+                      `1. Open Photos app on iPhone\n` +
+                      `2. Select the photo(s)\n` +
+                      `3. Tap Share button\n` +
+                      `4. Choose "Save to Files" or "Copy Photo"\n` +
+                      `5. This converts them to JPEG automatically\n` +
+                      `6. Upload the converted photos\n\n` +
+                      `OR\n\n` +
+                      `Change iPhone settings:\n` +
+                      `Settings → Camera → Formats → "Most Compatible"`);
+            }
         }
 
         function removePreviewImage(index) {
@@ -802,29 +860,64 @@
                 alert('Maximum 5 images allowed');
                 return;
             }
+
+            // Check for HEIC files
+            const heicFiles = imageFiles.filter(file => 
+                file.type === 'image/heic' || 
+                file.type === 'image/heif' || 
+                file.name.toLowerCase().endsWith('.heic') || 
+                file.name.toLowerCase().endsWith('.heif')
+            );
+
+            if (heicFiles.length > 0) {
+                const proceed = confirm(
+                    `⚠️ ${heicFiles.length} HEIC file(s) detected.\n\n` +
+                    `HEIC files may not work properly. We recommend:\n\n` +
+                    `1. Share photos from iPhone Photos app\n` +
+                    `2. This auto-converts to JPEG\n` +
+                    `3. Then upload the converted files\n\n` +
+                    `Do you want to try uploading anyway?`
+                );
+                
+                if (!proceed) {
+                    return;
+                }
+            }
             
             // Disable submit button
             const postBtn = document.getElementById('postBtn');
             postBtn.disabled = true;
             postBtn.textContent = '📤 Uploading...';
             
-            // Convert HEIC files and read all images
-            const imagePromises = imageFiles.map(file => {
+            // Process images with HEIC conversion attempt
+            const imagePromises = imageFiles.map((file, idx) => {
                 return new Promise((resolve, reject) => {
-                    const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' || 
+                    const isHEIC = file.type === 'image/heic' || 
+                                   file.type === 'image/heif' || 
                                    file.name.toLowerCase().endsWith('.heic') || 
                                    file.name.toLowerCase().endsWith('.heif');
 
                     if (isHEIC && typeof heic2any !== 'undefined') {
-                        // Convert HEIC to JPEG first
-                        heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
-                            .then(convertedBlob => {
-                                const reader = new FileReader();
-                                reader.onload = (event) => resolve(event.target.result);
-                                reader.onerror = reject;
-                                reader.readAsDataURL(convertedBlob);
-                            })
-                            .catch(reject);
+                        // Try to convert HEIC to JPEG
+                        postBtn.textContent = `📤 Converting image ${idx + 1}...`;
+                        heic2any({ 
+                            blob: file, 
+                            toType: 'image/jpeg', 
+                            quality: 0.8 
+                        })
+                        .then(convertedBlob => {
+                            const reader = new FileReader();
+                            reader.onload = (event) => resolve(event.target.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(convertedBlob);
+                        })
+                        .catch(error => {
+                            console.error('HEIC conversion failed for image', idx + 1, error);
+                            reject(new Error(`Could not convert HEIC image ${idx + 1}. Please use JPEG format.`));
+                        });
+                    } else if (isHEIC) {
+                        // HEIC file but no converter available
+                        reject(new Error(`HEIC files are not supported. Please convert image ${idx + 1} to JPEG.`));
                     } else {
                         // Regular image formats
                         const reader = new FileReader();
@@ -835,39 +928,37 @@
                 });
             });
             
-            Promise.all(imagePromises).then(images => {
-                const listing = {
-                    title: title,
-                    price: parseFloat(price),
-                    description: description,
-                    images: images,
-                    createdAt: new Date().toISOString(),
-                    sold: false
-                };
-                
-                // Push to Firebase
-                const listingsRef = window.firebaseRef(window.firebaseDB, 'listings');
-                window.firebasePush(listingsRef, listing)
-                    .then(() => {
-                        // Reset form
-                        e.target.reset();
-                        document.getElementById('imagePreview').innerHTML = '';
-                        postBtn.disabled = false;
-                        postBtn.textContent = '📤 Post Item';
-                        alert('✅ Item posted successfully!');
-                    })
-                    .catch(error => {
-                        console.error('Error adding listing:', error);
-                        alert('❌ Error posting item. Please try again.');
-                        postBtn.disabled = false;
-                        postBtn.textContent = '📤 Post Item';
-                    });
-            }).catch(error => {
-                alert('❌ Error uploading images. Please try again.');
-                console.error(error);
-                postBtn.disabled = false;
-                postBtn.textContent = '📤 Post Item';
-            });
+            Promise.all(imagePromises)
+                .then(images => {
+                    postBtn.textContent = '📤 Saving to database...';
+                    
+                    const listing = {
+                        title: title,
+                        price: parseFloat(price),
+                        description: description,
+                        images: images,
+                        createdAt: new Date().toISOString(),
+                        sold: false
+                    };
+                    
+                    // Push to Firebase
+                    const listingsRef = window.firebaseRef(window.firebaseDB, 'listings');
+                    return window.firebasePush(listingsRef, listing);
+                })
+                .then(() => {
+                    // Reset form
+                    e.target.reset();
+                    document.getElementById('imagePreview').innerHTML = '';
+                    postBtn.disabled = false;
+                    postBtn.textContent = '📤 Post Item';
+                    alert('✅ Item posted successfully!');
+                })
+                .catch(error => {
+                    console.error('Error posting listing:', error);
+                    alert('❌ ' + (error.message || 'Error posting item. Please try again with JPEG images.'));
+                    postBtn.disabled = false;
+                    postBtn.textContent = '📤 Post Item';
+                });
         }
 
         function deleteListing(firebaseId) {
