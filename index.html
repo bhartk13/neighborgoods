@@ -494,6 +494,105 @@
             display: flex;
         }
 
+        /* Image Lightbox Modal */
+        .image-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .image-modal-overlay.active {
+            display: flex;
+        }
+
+        .image-modal-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 1100px;
+            max-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .image-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            font-size: 28px;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .image-modal-close:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .image-modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 28px;
+            border-radius: 12px;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .image-modal-nav:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .image-modal-prev {
+            left: 10px;
+        }
+
+        .image-modal-next {
+            right: 10px;
+        }
+
+        .image-modal-counter {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.15);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.9em;
+        }
+
         .modal-content {
             background: white;
             border-radius: 16px;
@@ -804,6 +903,17 @@
         </div>
     </div>
 
+    <!-- Image Lightbox Modal -->
+    <div id="imageModal" class="image-modal-overlay" aria-hidden="true">
+        <div class="image-modal-content">
+            <button class="image-modal-close" onclick="closeImageModal()" aria-label="Close image">×</button>
+            <button id="imageModalPrev" class="image-modal-nav image-modal-prev" onclick="navigateImageModal(-1)" aria-label="Previous image">‹</button>
+            <img id="imageModalImg" class="image-modal-img" alt="Item image">
+            <button id="imageModalNext" class="image-modal-nav image-modal-next" onclick="navigateImageModal(1)" aria-label="Next image">›</button>
+            <div id="imageModalCounter" class="image-modal-counter" style="display:none;"></div>
+        </div>
+    </div>
+
     <!-- HEIC to JPEG conversion library (more reliable version) -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.js"></script>
 
@@ -916,9 +1026,88 @@
                 }
             });
 
+            // Close image modal on outside click + ESC
+            const imageModal = document.getElementById('imageModal');
+            imageModal.addEventListener('click', (e) => {
+                if (e.target.id === 'imageModal') {
+                    closeImageModal();
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeImageModal();
+                if (document.getElementById('imageModal').classList.contains('active')) {
+                    if (e.key === 'ArrowLeft') navigateImageModal(-1);
+                    if (e.key === 'ArrowRight') navigateImageModal(1);
+                }
+            });
+
             // Load public seller phone from Firebase so buyers can text without localStorage setup
             loadPublicSellerPhone();
         });
+
+        // Image modal state
+        let imageModalListingId = null;
+        let imageModalIndex = 0;
+        let imageModalImages = [];
+
+        function openImageModal(listingId, index) {
+            try {
+                imageModalListingId = listingId;
+                imageModalIndex = index || 0;
+                // Pull images from DOM so it works without extra data plumbing
+                const imgs = document.querySelectorAll(`img.gallery-image[data-listing="${listingId}"]`);
+                if (imgs && imgs.length > 0) {
+                    imageModalImages = Array.from(imgs).map(i => i.src);
+                } else {
+                    // Single-image listing
+                    const single = document.querySelector(`img.listing-image[data-listing="${listingId}"]`);
+                    imageModalImages = single ? [single.src] : [];
+                }
+
+                if (!imageModalImages.length) return;
+
+                const modal = document.getElementById('imageModal');
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                renderImageModal();
+            } catch (e) {
+                console.error('Failed to open image modal:', e);
+            }
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            if (!modal.classList.contains('active')) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            imageModalListingId = null;
+            imageModalIndex = 0;
+            imageModalImages = [];
+        }
+
+        function navigateImageModal(direction) {
+            if (!imageModalImages.length) return;
+            imageModalIndex += direction;
+            if (imageModalIndex < 0) imageModalIndex = imageModalImages.length - 1;
+            if (imageModalIndex >= imageModalImages.length) imageModalIndex = 0;
+            renderImageModal();
+        }
+
+        function renderImageModal() {
+            const imgEl = document.getElementById('imageModalImg');
+            imgEl.src = imageModalImages[imageModalIndex];
+
+            const showNav = imageModalImages.length > 1;
+            document.getElementById('imageModalPrev').style.display = showNav ? 'block' : 'none';
+            document.getElementById('imageModalNext').style.display = showNav ? 'block' : 'none';
+            const counter = document.getElementById('imageModalCounter');
+            if (showNav) {
+                counter.style.display = 'block';
+                counter.textContent = `${imageModalIndex + 1} / ${imageModalImages.length}`;
+            } else {
+                counter.style.display = 'none';
+            }
+        }
 
         function loadPublicSellerPhone() {
             try {
@@ -1608,7 +1797,8 @@
                             <img src="${img}" alt="${listing.title} - Image ${idx + 1}" 
                                  class="gallery-image ${idx === 0 ? 'active' : ''}" 
                                  data-listing="${listing.firebaseId}" 
-                                 data-index="${idx}">
+                                 data-index="${idx}"
+                                 onclick="openImageModal('${listing.firebaseId}', ${idx})">
                         `).join('')}
                         <button class="gallery-nav gallery-prev" onclick="changeImage('${listing.firebaseId}', -1)">‹</button>
                         <button class="gallery-nav gallery-next" onclick="changeImage('${listing.firebaseId}', 1)">›</button>
@@ -1632,7 +1822,7 @@
                         `).join('')}
                     </div>
                 ` : `
-                    <img src="${images[0]}" alt="${listing.title}" class="listing-image">
+                    <img src="${images[0]}" alt="${listing.title}" class="listing-image" data-listing="${listing.firebaseId}" onclick="openImageModal('${listing.firebaseId}', 0)">
                 `;
 
                 return `
@@ -1721,6 +1911,9 @@
 
         window.changeImage = changeImage;
         window.goToImage = goToImage;
+        window.openImageModal = openImageModal;
+        window.closeImageModal = closeImageModal;
+        window.navigateImageModal = navigateImageModal;
     </script>
 </body>
 </html>
