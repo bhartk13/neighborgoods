@@ -1398,40 +1398,12 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sending...';
 
-            // Try Twilio first (automatic SMS)
-            if (twilioAccountSid && twilioAuthToken && twilioPhoneNumber && adminPhone) {
-                try {
-                    const sent = await sendViaTwilio(name, phone, message);
-                    if (sent) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Send Message';
-                        return; // Success!
-                    }
-                } catch (error) {
-                    console.error('Twilio failed, trying Pushover...', error);
-                }
-            }
+            // Always use regular SMS via the buyer's default messaging app
+            const success = sendViaManualSMS(name, phone, message);
 
-            // Try Pushover second (push notification)
-            if (pushoverUserKey && pushoverAppToken) {
-                try {
-                    const sent = await sendViaPushover(name, phone, message);
-                    if (sent) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Send Message';
-                        return; // Success!
-                    }
-                } catch (error) {
-                    console.error('Pushover failed, trying manual SMS...', error);
-                }
-            }
-
-            // Fallback to manual SMS
-            sendViaManualSMS(name, phone, message);
-
-            // Re-enable button
+            // Re-enable button with state based on result
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Send Message';
+            submitBtn.textContent = success ? 'Send Message' : 'Fix seller phone in Admin';
         }
 
         async function sendViaTwilio(name, phone, message) {
