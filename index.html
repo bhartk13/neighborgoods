@@ -721,6 +721,39 @@
             background: var(--gray-300);
         }
 
+        /* Edit Listing Modal */
+        .edit-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .edit-modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .edit-help {
+            font-size: 0.85em;
+            color: var(--gray-600);
+            margin-top: 6px;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2em;
@@ -903,6 +936,41 @@
         </div>
     </div>
 
+    <!-- Edit Listing Modal (Admin) -->
+    <div id="editListingModal" class="modal-overlay">
+        <div class="modal-content" style="position: relative;">
+            <button class="modal-close" onclick="closeEditListingModal()">×</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Listing</h2>
+                <p class="modal-subtitle" id="editModalSubtitle"></p>
+            </div>
+            <form class="interest-form" onsubmit="submitEditListing(event)">
+                <div class="form-group">
+                    <label for="editItemTitle">Item Title *</label>
+                    <input type="text" id="editItemTitle" required placeholder="e.g., Vintage Oak Dining Table">
+                </div>
+                <div class="form-group">
+                    <label for="editItemPrice">Price ($) *</label>
+                    <input type="number" id="editItemPrice" required min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="editItemDescription">Description *</label>
+                    <textarea id="editItemDescription" required placeholder="Describe the item's condition, size, features, etc."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editItemImages">Update Photos (Optional, Max 5)</label>
+                    <input type="file" id="editItemImages" accept="image/*,.heic,.heif" multiple>
+                    <div class="edit-help">Leave empty to keep existing photos.</div>
+                    <div id="editImagePreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px;"></div>
+                </div>
+                <div class="edit-modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeEditListingModal()">Cancel</button>
+                    <button type="submit" class="btn-submit" id="editSubmitBtn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Image Lightbox Modal -->
     <div id="imageModal" class="image-modal-overlay" aria-hidden="true">
         <div class="image-modal-content">
@@ -1026,6 +1094,19 @@
                 }
             });
 
+            // Edit modal close on outside click
+            document.getElementById('editListingModal').addEventListener('click', (e) => {
+                if (e.target.id === 'editListingModal') {
+                    closeEditListingModal();
+                }
+            });
+
+            // Edit images preview
+            const editImageInput = document.getElementById('editItemImages');
+            if (editImageInput) {
+                editImageInput.addEventListener('change', handleEditImagePreview);
+            }
+
             // Close image modal on outside click + ESC
             const imageModal = document.getElementById('imageModal');
             imageModal.addEventListener('click', (e) => {
@@ -1049,6 +1130,161 @@
         let imageModalListingId = null;
         let imageModalIndex = 0;
         let imageModalImages = [];
+
+        // Edit listing state
+        let currentEditingListing = null;
+
+        function openEditListingModal(listing) {
+            if (!listing) return;
+            currentEditingListing = listing;
+
+            document.getElementById('editModalSubtitle').textContent = `${listing.title} - $${listing.price.toFixed(2)}`;
+            document.getElementById('editItemTitle').value = listing.title || '';
+            document.getElementById('editItemPrice').value = typeof listing.price === 'number' ? listing.price : (parseFloat(listing.price) || 0);
+            document.getElementById('editItemDescription').value = listing.description || '';
+
+            // Reset images input + preview
+            const editImageInput = document.getElementById('editItemImages');
+            editImageInput.value = '';
+            document.getElementById('editImagePreview').innerHTML = '';
+
+            document.getElementById('editListingModal').classList.add('active');
+        }
+
+        function closeEditListingModal() {
+            document.getElementById('editListingModal').classList.remove('active');
+            currentEditingListing = null;
+            const editImageInput = document.getElementById('editItemImages');
+            if (editImageInput) editImageInput.value = '';
+            const preview = document.getElementById('editImagePreview');
+            if (preview) preview.innerHTML = '';
+        }
+
+        function handleEditImagePreview(e) {
+            const files = Array.from(e.target.files || []);
+            const previewContainer = document.getElementById('editImagePreview');
+            previewContainer.innerHTML = '';
+
+            if (files.length > 5) {
+                alert('Maximum 5 images allowed. First 5 will be used.');
+            }
+
+            files.slice(0, 5).forEach((file, index) => {
+                const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
+                               file.name.toLowerCase().endsWith('.heic') ||
+                               file.name.toLowerCase().endsWith('.heif');
+
+                if (isHEIC) {
+                    if (typeof heic2any !== 'undefined') {
+                        heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 })
+                            .then(convertedBlob => {
+                                const reader = new FileReader();
+                                reader.onload = (event) => addPreviewImage(event.target.result, index, previewContainer);
+                                reader.readAsDataURL(convertedBlob);
+                            })
+                            .catch(error => {
+                                console.error('HEIC conversion failed:', error);
+                                addHEICWarning(index, previewContainer);
+                            });
+                    } else {
+                        addHEICWarning(index, previewContainer);
+                    }
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (event) => addPreviewImage(event.target.result, index, previewContainer);
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        async function processSelectedImages(imageFiles, statusCb) {
+            const files = (imageFiles || []).slice(0, 5);
+            const imagePromises = files.map((file, idx) => {
+                return new Promise((resolve, reject) => {
+                    const isHEIC = file.type === 'image/heic' ||
+                                   file.type === 'image/heif' ||
+                                   file.name.toLowerCase().endsWith('.heic') ||
+                                   file.name.toLowerCase().endsWith('.heif');
+
+                    if (isHEIC && typeof heic2any !== 'undefined') {
+                        if (typeof statusCb === 'function') statusCb(`Converting image ${idx + 1}...`);
+                        heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 })
+                            .then(convertedBlob => {
+                                const reader = new FileReader();
+                                reader.onload = (event) => resolve(event.target.result);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(convertedBlob);
+                            })
+                            .catch(error => {
+                                console.error('HEIC conversion failed for image', idx + 1, error);
+                                reject(new Error(`Could not convert HEIC image ${idx + 1}. Please use JPEG format.`));
+                            });
+                    } else if (isHEIC) {
+                        reject(new Error(`HEIC files are not supported. Please convert image ${idx + 1} to JPEG.`));
+                    } else {
+                        const reader = new FileReader();
+                        reader.onload = (event) => resolve(event.target.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    }
+                });
+            });
+
+            return await Promise.all(imagePromises);
+        }
+
+        async function submitEditListing(e) {
+            e.preventDefault();
+            if (!currentEditingListing || !currentEditingListing.firebaseId) return;
+            if (!window.isFirebaseConfigured) {
+                alert('⚠️ Firebase is not configured. Please set up Firebase first.');
+                return;
+            }
+
+            const title = document.getElementById('editItemTitle').value.trim();
+            const price = parseFloat(document.getElementById('editItemPrice').value);
+            const description = document.getElementById('editItemDescription').value.trim();
+            const editSubmitBtn = document.getElementById('editSubmitBtn');
+
+            if (!title || Number.isNaN(price) || !description) {
+                alert('Please fill in title, price, and description');
+                return;
+            }
+
+            editSubmitBtn.disabled = true;
+            editSubmitBtn.textContent = 'Saving...';
+
+            try {
+                const imageFiles = Array.from(document.getElementById('editItemImages').files || []);
+                let imagesToSave = currentEditingListing.images || (currentEditingListing.image ? [currentEditingListing.image] : []);
+
+                if (imageFiles.length > 0) {
+                    imagesToSave = await processSelectedImages(imageFiles, (txt) => {
+                        editSubmitBtn.textContent = txt;
+                    });
+                }
+
+                const listingRef = window.firebaseRef(window.firebaseDB, `listings/${currentEditingListing.firebaseId}`);
+                await window.firebaseUpdate(listingRef, {
+                    title,
+                    price,
+                    description,
+                    images: imagesToSave,
+                    sellerPhone: adminPhone || publicSellerPhone || currentEditingListing.sellerPhone || '',
+                    updatedAt: new Date().toISOString()
+                });
+
+                editSubmitBtn.disabled = false;
+                editSubmitBtn.textContent = 'Save Changes';
+                closeEditListingModal();
+                alert('✅ Listing updated!');
+            } catch (err) {
+                console.error('Error updating listing:', err);
+                alert('❌ Error updating listing. Please try again.');
+                editSubmitBtn.disabled = false;
+                editSubmitBtn.textContent = 'Save Changes';
+            }
+        }
 
         function openImageModal(listingId, index) {
             try {
@@ -1845,6 +2081,7 @@
                             <button class="btn sold-btn ${listing.sold ? 'mark-available' : ''}" onclick="toggleSold('${listing.firebaseId}', ${listing.sold})">
                                 ${listing.sold ? '🔄 Mark as Available' : '✅ Mark as SOLD'}
                             </button>
+                            <button class="btn" style="background: var(--primary); margin-top: 10px;" onclick='openEditListingModal(${JSON.stringify(listing).replace(/'/g, "&apos;")})'>✏️ Edit Listing</button>
                             <button class="btn btn-danger delete-btn" onclick="deleteListing('${listing.firebaseId}')">🗑️ Delete</button>
                         ` : ''}
                     </div>
@@ -1914,6 +2151,9 @@
         window.openImageModal = openImageModal;
         window.closeImageModal = closeImageModal;
         window.navigateImageModal = navigateImageModal;
+        window.openEditListingModal = openEditListingModal;
+        window.closeEditListingModal = closeEditListingModal;
+        window.submitEditListing = submitEditListing;
     </script>
 </body>
 </html>
