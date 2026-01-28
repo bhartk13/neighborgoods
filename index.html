@@ -793,10 +793,6 @@
                     <input type="text" id="buyerName" required placeholder="John Doe">
                 </div>
                 <div class="form-group">
-                    <label for="buyerPhone">Your Phone Number *</label>
-                    <input type="tel" id="buyerPhone" required placeholder="(555) 123-4567">
-                </div>
-                <div class="form-group">
                     <label for="buyerMessage">Message (Optional)</label>
                     <textarea id="buyerMessage" placeholder="I'm interested in this item. When can I pick it up?"></textarea>
                 </div>
@@ -881,6 +877,7 @@
         let pushoverAppToken = localStorage.getItem('pushoverAppToken') || '';
         let isAdminMode = false;
         let currentListing = null;
+        let publicSellerPhone = '';
 
         // Load admin phone on page load
         window.addEventListener('load', () => {
@@ -915,7 +912,25 @@
                     closeInterestModal();
                 }
             });
+
+            // Load public seller phone from Firebase so buyers can text without localStorage setup
+            loadPublicSellerPhone();
         });
+
+        function loadPublicSellerPhone() {
+            try {
+                if (!window.isFirebaseConfigured || !window.firebaseDB) return;
+                const configRef = window.firebaseRef(window.firebaseDB, 'config/adminPhone');
+                window.firebaseOnValue(configRef, (snapshot) => {
+                    const val = snapshot.val();
+                    if (typeof val === 'string') {
+                        publicSellerPhone = val.trim();
+                    }
+                });
+            } catch (e) {
+                console.error('Failed to load public seller phone:', e);
+            }
+        }
 
         function handleImagePreview(e) {
             const files = Array.from(e.target.files);
@@ -1041,6 +1056,13 @@
             if (phone) {
                 adminPhone = phone;
                 localStorage.setItem('adminPhone', phone);
+                // Also publish to Firebase for buyers (required for manual SMS on public site)
+                if (window.isFirebaseConfigured && window.firebaseDB) {
+                    const configRef = window.firebaseRef(window.firebaseDB, 'config/adminPhone');
+                    window.firebaseSet(configRef, phone).catch((e) => {
+                        console.error('Failed to save public seller phone to Firebase:', e);
+                    });
+                }
                 alert('✅ Contact configuration saved!');
             } else {
                 alert('⚠️ Please enter a phone number');
@@ -1303,6 +1325,7 @@
                         price: parseFloat(price),
                         description: description,
                         images: images,
+                        sellerPhone: adminPhone,
                         createdAt: new Date().toISOString(),
                         sold: false
                     };
@@ -1369,7 +1392,6 @@
             
             // Reset form
             document.getElementById('buyerName').value = '';
-            document.getElementById('buyerPhone').value = '';
             document.getElementById('buyerMessage').value = '';
             
             // Show modal
@@ -1385,12 +1407,11 @@
             e.preventDefault();
             
             const name = document.getElementById('buyerName').value.trim();
-            const phone = document.getElementById('buyerPhone').value.trim();
             const message = document.getElementById('buyerMessage').value.trim();
             const submitBtn = document.getElementById('submitBtn');
             
-            if (!name || !phone) {
-                alert('Please fill in your name and phone number');
+            if (!name) {
+                alert('Please fill in your name');
                 return;
             }
 
@@ -1399,7 +1420,7 @@
             submitBtn.textContent = 'Sending...';
 
             // Always use regular SMS via the buyer's default messaging app
-            const success = sendViaManualSMS(name, phone, message);
+            const success = sendViaManualSMS(name, message);
 
             // Re-enable button with state based on result
             submitBtn.disabled = false;
@@ -1482,17 +1503,22 @@
             }
         }
 
-        function sendViaManualSMS(name, phone, message) {
-            if (!adminPhone) {
-                alert('⚠️ Contact information not configured. Please contact the administrator.');
+        function sendViaManualSMS(name, message) {
+            const targetPhone =
+                (currentListing && currentListing.sellerPhone) ||
+                publicSellerPhone ||
+                adminPhone;
+
+            if (!targetPhone) {
+                alert('⚠️ Seller contact information not configured. Please ask the seller/admin to set their phone number.');
                 return false;
             }
 
             const smsMessage = `Hi! I'm interested in: ${currentListing.title} ($${currentListing.price.toFixed(2)}). ` +
-                `My name is ${name} and my number is ${phone}.` +
+                `My name is ${name}.` +
                 (message ? ` Message: ${message}` : '');
             
-            const cleanPhone = adminPhone.replace(/\D/g, '');
+            const cleanPhone = targetPhone.replace(/\D/g, '');
             const smsLink = `sms:${cleanPhone}${/iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(smsMessage)}`;
             
             window.location.href = smsLink;
