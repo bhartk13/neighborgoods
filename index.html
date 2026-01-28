@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeighborGoods - Neighborhood Marketplace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--gray-600);
+            font-size: 1.1em;
+        }
+
+        .admin-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .admin-toggle {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .admin-toggle:hover {
+            background: var(--primary-dark);
+        }
+
+        .admin-form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .admin-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--gray-700);
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        input[type="file"],
+        input[type="tel"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 30px;
+        }
+
+        .listing-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .listing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .listing-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background: var(--gray-200);
+        }
+
+        .listing-content {
+            padding: 20px;
+        }
+
+        .listing-title {
+            font-size: 1.4em;
+            color: var(--gray-800);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .listing-price {
+            font-size: 1.8em;
+            color: var(--success);
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        .listing-description {
+            color: var(--gray-600);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .interest-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .interest-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .delete-btn {
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            color: var(--gray-700);
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: var(--gray-600);
+        }
+
+        .config-section {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .config-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .listings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏡 NeighborGoods</h1>
+            <p class="subtitle">Your Neighborhood Marketplace</p>
+        </header>
+
+        <div class="admin-section">
+            <button class="admin-toggle" onclick="toggleAdmin()">👤 Admin Login</button>
+            
+            <div id="adminForm" class="admin-form">
+                <div class="config-section">
+                    <h3>📱 Contact Configuration</h3>
+                    <div class="form-group">
+                        <label for="adminPhone">Your Phone Number (for SMS notifications):</label>
+                        <input type="tel" id="adminPhone" placeholder="e.g., +1234567890 or (555) 123-4567">
+                        <small style="color: var(--gray-600); display: block; margin-top: 5px;">
+                            Buyers will be prompted to text this number with their interest
+                        </small>
+                    </div>
+                    <button class="btn" onclick="saveConfig()">Save Configuration</button>
+                </div>
+
+                <h2 style="margin: 30px 0 20px 0; color: var(--gray-800);">Post New Item</h2>
+                <form onsubmit="addListing(event)">
+                    <div class="form-group">
+                        <label for="itemTitle">Item Title *</label>
+                        <input type="text" id="itemTitle" required placeholder="e.g., Vintage Oak Dining Table">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemPrice">Price ($) *</label>
+                        <input type="number" id="itemPrice" required min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemDescription">Description *</label>
+                        <textarea id="itemDescription" required placeholder="Describe the item's condition, size, features, etc."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemImage">Upload Photo *</label>
+                        <input type="file" id="itemImage" accept="image/*" required>
+                    </div>
+                    
+                    <button type="submit" class="btn">📤 Post Item</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="listings" class="listings-grid"></div>
+    </div>
+
+    <script>
+        // Configuration
+        let adminPhone = localStorage.getItem('adminPhone') || '';
+        let isAdminMode = false;
+
+        // Load admin phone on page load
+        window.addEventListener('load', () => {
+            if (adminPhone) {
+                document.getElementById('adminPhone').value = adminPhone;
+            }
+        });
+
+        function saveConfig() {
+            const phone = document.getElementById('adminPhone').value.trim();
+            if (phone) {
+                adminPhone = phone;
+                localStorage.setItem('adminPhone', phone);
+                alert('✅ Contact configuration saved!');
+            } else {
+                alert('⚠️ Please enter a phone number');
+            }
+        }
+
+        function toggleAdmin() {
+            isAdminMode = !isAdminMode;
+            const form = document.getElementById('adminForm');
+            form.classList.toggle('active');
+        }
+
+        function addListing(e) {
+            e.preventDefault();
+            
+            if (!adminPhone) {
+                alert('⚠️ Please configure your phone number first!');
+                return;
+            }
+            
+            const title = document.getElementById('itemTitle').value;
+            const price = document.getElementById('itemPrice').value;
+            const description = document.getElementById('itemDescription').value;
+            const imageFile = document.getElementById('itemImage').files[0];
+            
+            if (!imageFile) {
+                alert('Please select an image');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const listing = {
+                    id: Date.now(),
+                    title: title,
+                    price: parseFloat(price),
+                    description: description,
+                    image: event.target.result,
+                    createdAt: new Date().toISOString()
+                };
+                
+                const listings = getListings();
+                listings.unshift(listing);
+                localStorage.setItem('listings', JSON.stringify(listings));
+                
+                // Reset form
+                e.target.reset();
+                
+                // Refresh display
+                displayListings();
+                
+                alert('✅ Item posted successfully!');
+            };
+            
+            reader.readAsDataURL(imageFile);
+        }
+
+        function getListings() {
+            const data = localStorage.getItem('listings');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function deleteListing(id) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                let listings = getListings();
+                listings = listings.filter(item => item.id !== id);
+                localStorage.setItem('listings', JSON.stringify(listings));
+                displayListings();
+            }
+        }
+
+        function expressInterest(listing) {
+            if (!adminPhone) {
+                alert('⚠️ Contact information not configured. Please contact the administrator.');
+                return;
+            }
+
+            const buyerName = prompt('Please enter your name:');
+            if (!buyerName) return;
+            
+            const buyerPhone = prompt('Please enter your phone number:');
+            if (!buyerPhone) return;
+            
+            // Format SMS message
+            const message = `Hi! I'm interested in: ${listing.title} ($${listing.price.toFixed(2)}). My name is ${buyerName} and my number is ${buyerPhone}.`;
+            
+            // Clean phone number for SMS link
+            const cleanPhone = adminPhone.replace(/\D/g, '');
+            
+            // Create SMS link - works on both iOS and Android
+            const smsLink = `sms:${cleanPhone}${/iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(message)}`;
+            
+            // Open SMS app
+            window.location.href = smsLink;
+            
+            alert(`✅ Your default messaging app will open. Send the pre-filled message to express interest!\n\nIf it doesn't open automatically, please text:\n${adminPhone}\n\nWith message:\n"${message}"`);
+        }
+
+        function displayListings() {
+            const listings = getListings();
+            const container = document.getElementById('listings');
+            
+            if (listings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                        <h3>No Items Yet</h3>
+                        <p>Items posted by the admin will appear here</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = listings.map(listing => `
+                <div class="listing-card">
+                    <img src="${listing.image}" alt="${listing.title}" class="listing-image">
+                    <div class="listing-content">
+                        <h3 class="listing-title">${listing.title}</h3>
+                        <div class="listing-price">$${listing.price.toFixed(2)}</div>
+                        <p class="listing-description">${listing.description}</p>
+                        <button class="interest-btn" onclick='expressInterest(${JSON.stringify(listing).replace(/'/g, "&apos;")})'>
+                            💬 I'm Interested
+                        </button>
+                        ${isAdminMode ? `<button class="btn btn-danger delete-btn" onclick="deleteListing(${listing.id})">🗑️ Delete</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initial display
+        displayListings();
+    </script>
+</body>
+</html>
