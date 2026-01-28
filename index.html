@@ -164,11 +164,32 @@
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
         }
 
         .listing-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .listing-card.sold {
+            opacity: 0.7;
+        }
+
+        .listing-card.sold::before {
+            content: 'SOLD';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1.2em;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transform: rotate(15deg);
         }
 
         .listing-image {
@@ -222,6 +243,26 @@
         .delete-btn {
             margin-top: 10px;
             width: 100%;
+        }
+
+        .sold-btn {
+            background: #f59e0b;
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .sold-btn:hover {
+            background: #d97706;
+        }
+
+        .sold-btn.mark-available {
+            background: var(--success);
+        }
+
+        .sold-btn.mark-available:hover {
+            background: #059669;
         }
 
         .empty-state {
@@ -283,6 +324,23 @@
             <button class="admin-toggle" onclick="toggleAdmin()">👤 Admin Login</button>
             
             <div id="adminForm" class="admin-form">
+                <div class="config-section" style="background: #ffe6e6; border-color: #ff6b6b;">
+                    <h3>🔐 Security Settings</h3>
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password:</label>
+                        <input type="password" id="currentPassword" placeholder="Enter current password">
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password:</label>
+                        <input type="password" id="newPassword" placeholder="Enter new password">
+                    </div>
+                    <button class="btn" onclick="changePassword()">Change Password</button>
+                    <p style="margin-top: 10px; color: #856404; font-size: 0.9em;">
+                        <strong>Default password:</strong> admin123<br>
+                        <strong>⚠️ Change this immediately after first login!</strong>
+                    </p>
+                </div>
+
                 <div class="config-section">
                     <h3>📱 Contact Configuration</h3>
                     <div class="form-group">
@@ -348,10 +406,54 @@
             }
         }
 
+        function changePassword() {
+            const currentPwd = document.getElementById('currentPassword').value;
+            const newPwd = document.getElementById('newPassword').value;
+            
+            if (!currentPwd || !newPwd) {
+                alert('⚠️ Please fill in both password fields');
+                return;
+            }
+            
+            const storedPassword = localStorage.getItem('adminPassword') || 'admin123';
+            
+            if (currentPwd !== storedPassword) {
+                alert('❌ Current password is incorrect!');
+                return;
+            }
+            
+            if (newPwd.length < 6) {
+                alert('⚠️ New password must be at least 6 characters');
+                return;
+            }
+            
+            localStorage.setItem('adminPassword', newPwd);
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            alert('✅ Password changed successfully! Remember your new password.');
+        }
+
         function toggleAdmin() {
-            isAdminMode = !isAdminMode;
+            if (!isAdminMode) {
+                // Prompt for password when trying to access admin
+                const password = prompt('🔐 Enter Admin Password:');
+                
+                // Get stored password or use default
+                const adminPassword = localStorage.getItem('adminPassword') || 'admin123';
+                
+                if (password !== adminPassword) {
+                    alert('❌ Incorrect password!');
+                    return;
+                }
+                
+                isAdminMode = true;
+            } else {
+                isAdminMode = false;
+            }
+            
             const form = document.getElementById('adminForm');
             form.classList.toggle('active');
+            displayListings(); // Refresh to show/hide delete buttons
         }
 
         function addListing(e) {
@@ -380,7 +482,8 @@
                     price: parseFloat(price),
                     description: description,
                     image: event.target.result,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    sold: false
                 };
                 
                 const listings = getListings();
@@ -410,6 +513,23 @@
                 listings = listings.filter(item => item.id !== id);
                 localStorage.setItem('listings', JSON.stringify(listings));
                 displayListings();
+            }
+        }
+
+        function toggleSold(id) {
+            let listings = getListings();
+            const listing = listings.find(item => item.id === id);
+            
+            if (listing) {
+                listing.sold = !listing.sold;
+                localStorage.setItem('listings', JSON.stringify(listings));
+                displayListings();
+                
+                if (listing.sold) {
+                    alert('✅ Item marked as SOLD!');
+                } else {
+                    alert('✅ Item marked as AVAILABLE!');
+                }
             }
         }
 
@@ -458,16 +578,27 @@
             }
             
             container.innerHTML = listings.map(listing => `
-                <div class="listing-card">
+                <div class="listing-card ${listing.sold ? 'sold' : ''}">
                     <img src="${listing.image}" alt="${listing.title}" class="listing-image">
                     <div class="listing-content">
                         <h3 class="listing-title">${listing.title}</h3>
                         <div class="listing-price">$${listing.price.toFixed(2)}</div>
                         <p class="listing-description">${listing.description}</p>
-                        <button class="interest-btn" onclick='expressInterest(${JSON.stringify(listing).replace(/'/g, "&apos;")})'>
-                            💬 I'm Interested
-                        </button>
-                        ${isAdminMode ? `<button class="btn btn-danger delete-btn" onclick="deleteListing(${listing.id})">🗑️ Delete</button>` : ''}
+                        ${!listing.sold ? `
+                            <button class="interest-btn" onclick='expressInterest(${JSON.stringify(listing).replace(/'/g, "&apos;")})'>
+                                💬 I'm Interested
+                            </button>
+                        ` : `
+                            <button class="interest-btn" style="background: var(--gray-400); cursor: not-allowed;" disabled>
+                                ❌ Item Sold
+                            </button>
+                        `}
+                        ${isAdminMode ? `
+                            <button class="btn sold-btn ${listing.sold ? 'mark-available' : ''}" onclick="toggleSold(${listing.id})">
+                                ${listing.sold ? '🔄 Mark as Available' : '✅ Mark as SOLD'}
+                            </button>
+                            <button class="btn btn-danger delete-btn" onclick="deleteListing(${listing.id})">🗑️ Delete</button>
+                        ` : ''}
                     </div>
                 </div>
             `).join('');
