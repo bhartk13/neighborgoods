@@ -571,18 +571,14 @@
     <!-- HEIC to JPEG conversion library (more reliable version) -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.js"></script>
 
-    <!-- Firebase Config (loaded from external file - NOT committed to GitHub) -->
-    <script src="firebase-config.js"></script>
-
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, push, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        // Get Firebase configuration from external file
-        // This keeps your API keys safe and out of GitHub
-        const firebaseConfig = window.firebaseConfig || {
-            apiKey: "YOUR_AP",
+        // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
             databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
             projectId: "YOUR_PROJECT_ID",
