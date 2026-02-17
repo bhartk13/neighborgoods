@@ -793,6 +793,7 @@
                         <input type="password" id="newPassword" placeholder="Enter new password">
                     </div>
                     <button class="btn" onclick="changePassword()">Change Password</button>
+                    <button class="btn" style="background: var(--danger); margin-top: 10px;" onclick="resetPassword()">🔄 Reset to Default Password</button>
                     <p style="margin-top: 10px; color: #856404; font-size: 0.9em;">
                         <strong>Default password:</strong> admin123<br>
                         <strong>⚠️ Change this immediately after first login!</strong>
@@ -1663,13 +1664,55 @@
             alert('✅ Password changed successfully! Remember your new password.');
         }
 
+        function resetPassword() {
+            const confirmReset = confirm(
+                '⚠️ Reset Password to Default?\n\n' +
+                'This will clear your current password and reset it to: admin123\n\n' +
+                'You will need to log in again with the default password.\n\n' +
+                'Continue?'
+            );
+            
+            if (!confirmReset) return;
+            
+            localStorage.removeItem('adminPassword');
+            isAdminMode = false;
+            document.getElementById('adminForm').classList.remove('active');
+            alert('✅ Password reset to default: admin123\n\nYou can now log in with the default password.');
+        }
+
         function toggleAdmin() {
             if (!isAdminMode) {
-                const password = prompt('🔐 Enter Admin Password:');
+                const password = prompt('🔐 Enter Admin Password:\n\n(Or type "reset" to reset to default password)');
+                
+                if (password === 'reset' || password === 'RESET') {
+                    const confirmReset = confirm(
+                        '⚠️ Reset Password to Default?\n\n' +
+                        'This will clear your current password and reset it to: admin123\n\n' +
+                        'Continue?'
+                    );
+                    
+                    if (confirmReset) {
+                        localStorage.removeItem('adminPassword');
+                        alert('✅ Password reset to default: admin123\n\nPlease log in again.');
+                        // Try to log in with default password
+                        const defaultPassword = prompt('🔐 Enter Admin Password (default: admin123):');
+                        if (defaultPassword === 'admin123') {
+                            isAdminMode = true;
+                            const form = document.getElementById('adminForm');
+                            form.classList.add('active');
+                            const event = new Event('admin-toggle');
+                            window.dispatchEvent(event);
+                        } else {
+                            alert('❌ Incorrect password!');
+                        }
+                    }
+                    return;
+                }
+                
                 const adminPassword = localStorage.getItem('adminPassword') || 'admin123';
                 
                 if (password !== adminPassword) {
-                    alert('❌ Incorrect password!');
+                    alert('❌ Incorrect password!\n\nTip: Type "reset" in the password field to reset to default.');
                     return;
                 }
                 
