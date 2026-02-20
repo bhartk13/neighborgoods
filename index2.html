@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeighborGoods - Neighborhood Marketplace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--gray-600);
+            font-size: 1.1em;
+        }
+
+        .admin-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .admin-toggle {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .admin-toggle:hover {
+            background: var(--primary-dark);
+        }
+
+        .admin-form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .admin-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--gray-700);
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="password"],
+        textarea,
+        input[type="file"],
+        input[type="tel"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #059669;
+        }
+
+        .btn:disabled {
+            background: var(--gray-400);
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 30px;
+        }
+
+        .listing-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+
+        .listing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .listing-card.sold {
+            opacity: 0.7;
+        }
+
+        .listing-card.sold::before {
+            content: 'SOLD';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1.2em;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transform: rotate(15deg);
+        }
+
+        .listing-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background: var(--gray-200);
+        }
+
+        .image-gallery {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            overflow: hidden;
+        }
+
+        .gallery-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            display: none;
+        }
+
+        .gallery-image.active {
+            display: block;
+        }
+
+        .gallery-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 1.5em;
+            transition: background 0.3s;
+            z-index: 5;
+        }
+
+        .gallery-nav:hover {
+            background: rgba(0,0,0,0.7);
+        }
+
+        .gallery-prev {
+            left: 10px;
+        }
+
+        .gallery-next {
+            right: 10px;
+        }
+
+        .gallery-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 5;
+        }
+
+        .gallery-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .gallery-dot.active {
+            background: white;
+            transform: scale(1.2);
+        }
+
+        .thumbnail-gallery {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            overflow-x: auto;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .thumbnail-gallery::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .thumbnail-gallery::-webkit-scrollbar-thumb {
+            background: var(--gray-400);
+            border-radius: 3px;
+        }
+
+        .thumbnail-item {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            opacity: 0.6;
+        }
+
+        .thumbnail-item:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .thumbnail-item.active {
+            border-color: var(--primary);
+            opacity: 1;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .thumbnail-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .listing-content {
+            padding: 20px;
+        }
+
+        .listing-title {
+            font-size: 1.4em;
+            color: var(--gray-800);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .listing-price {
+            font-size: 1.8em;
+            color: var(--success);
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        .listing-description {
+            color: var(--gray-600);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .interest-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .interest-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .delete-btn {
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .sold-btn {
+            background: #f59e0b;
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .sold-btn:hover {
+            background: #d97706;
+        }
+
+        .sold-btn.mark-available {
+            background: var(--success);
+        }
+
+        .sold-btn.mark-available:hover {
+            background: #059669;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            color: var(--gray-700);
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: var(--gray-600);
+        }
+
+        .config-section {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .config-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .setup-warning {
+            background: #ffe6e6;
+            border: 2px solid #ff6b6b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .setup-warning h3 {
+            color: #c92a2a;
+            margin-bottom: 10px;
+        }
+
+        .image-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--gray-300);
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .listings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏡 NeighborGoods</h1>
+            <p class="subtitle">Your Neighborhood Marketplace</p>
+        </header>
+
+        <div id="setupWarning" class="setup-warning" style="display: none;">
+            <h3>⚠️ Firebase Not Configured</h3>
+            <p>Please follow the setup instructions in the README to configure Firebase.</p>
+            <p style="margin-top: 10px;"><strong>Without Firebase, listings won't be shared with neighbors.</strong></p>
+        </div>
+
+        <div class="admin-section">
+            <button class="admin-toggle" onclick="toggleAdmin()">👤 Admin Login</button>
+            
+            <div id="adminForm" class="admin-form">
+                <div class="config-section" style="background: #ffe6e6; border-color: #ff6b6b;">
+                    <h3>🔐 Security Settings</h3>
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password:</label>
+                        <input type="password" id="currentPassword" placeholder="Enter current password">
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password:</label>
+                        <input type="password" id="newPassword" placeholder="Enter new password">
+                    </div>
+                    <button class="btn" onclick="changePassword()">Change Password</button>
+                    <p style="margin-top: 10px; color: #856404; font-size: 0.9em;">
+                        <strong>Default password:</strong> admin123<br>
+                        <strong>⚠️ Change this immediately after first login!</strong>
+                    </p>
+                </div>
+
+                <div class="config-section">
+                    <h3>📱 Contact Configuration</h3>
+                    <div class="form-group">
+                        <label for="adminPhone">Your Phone Number (for SMS notifications):</label>
+                        <input type="tel" id="adminPhone" placeholder="e.g., +1234567890 or (555) 123-4567">
+                        <small style="color: var(--gray-600); display: block; margin-top: 5px;">
+                            Buyers will be prompted to text this number with their interest
+                        </small>
+                    </div>
+                    <button class="btn" onclick="saveConfig()">Save Configuration</button>
+                </div>
+
+                <h2 style="margin: 30px 0 20px 0; color: var(--gray-800);">Post New Item</h2>
+                <form onsubmit="addListing(event)">
+                    <div class="form-group">
+                        <label for="itemTitle">Item Title *</label>
+                        <input type="text" id="itemTitle" required placeholder="e.g., Vintage Oak Dining Table">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemPrice">Price ($) *</label>
+                        <input type="number" id="itemPrice" required min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemDescription">Description *</label>
+                        <textarea id="itemDescription" required placeholder="Describe the item's condition, size, features, etc."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemImage">Upload Photos * (Max 5)</label>
+                        <input type="file" id="itemImage" accept="image/*,.heic,.heif" multiple required>
+                        <small style="color: var(--gray-600); display: block; margin-top: 5px;">
+                            Select multiple photos to show different angles of your item (HEIC/HEIF supported)
+                        </small>
+                        <div id="imagePreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px;"></div>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="postBtn">📤 Post Item</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">Loading listings...</div>
+        <div id="listings" class="listings-grid" style="display: none;"></div>
+    </div>
+
+    <!-- HEIC to JPEG conversion library (more reliable version) -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.js"></script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
+        const firebaseConfig = {
+    apiKey: "AIzaSyD-oFV6EIGAsp8t8iulmRg3ki1he-WvRJc",
+        authDomain: "neighborgoods-b9d6f.firebaseapp.com",
+        databaseURL: "https://neighborgoods-b9d6f-default-rtdb.firebaseio.com",
+        projectId: "neighborgoods-b9d6f",
+        storageBucket: "neighborgoods-b9d6f.firebasestorage.app",
+        messagingSenderId: "659200825421",
+        appId: "1:659200825421:web:11de2ff59de2e5f28ce404"
+  };
+
+        // Check if Firebase is configured
+        const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+        
+        let app, database;
+        
+        if (isConfigured) {
+            app = initializeApp(firebaseConfig);
+            database = getDatabase(app);
+            document.getElementById('setupWarning').style.display = 'none';
+        } else {
+            document.getElementById('setupWarning').style.display = 'block';
+            document.getElementById('loading').innerHTML = '⚠️ Firebase not configured. Check README for setup instructions.';
+        }
+
+        // Make Firebase available globally
+        window.firebaseDB = database;
+        window.firebaseRef = ref;
+        window.firebasePush = push;
+        window.firebaseSet = set;
+        window.firebaseOnValue = onValue;
+        window.firebaseRemove = remove;
+        window.firebaseUpdate = update;
+        window.isFirebaseConfigured = isConfigured;
+
+        // Load listings from Firebase
+        if (isConfigured) {
+            const listingsRef = ref(database, 'listings');
+            onValue(listingsRef, (snapshot) => {
+                const data = snapshot.val();
+                const listings = data ? Object.entries(data).map(([id, listing]) => ({
+                    ...listing,
+                    firebaseId: id
+                })) : [];
+                
+                // Sort by creation date (newest first)
+                listings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                window.displayListings(listings);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('listings').style.display = 'grid';
+            });
+        }
+    </script>
+
+    <script>
+        // Configuration
+        let adminPhone = localStorage.getItem('adminPhone') || '';
+        let isAdminMode = false;
+
+        // Load admin phone on page load
+        window.addEventListener('load', () => {
+            if (adminPhone) {
+                document.getElementById('adminPhone').value = adminPhone;
+            }
+
+            // Add image preview listener
+            const imageInput = document.getElementById('itemImage');
+            if (imageInput) {
+                imageInput.addEventListener('change', handleImagePreview);
+            }
+        });
+
+        function handleImagePreview(e) {
+            const files = Array.from(e.target.files);
+            const previewContainer = document.getElementById('imagePreview');
+            previewContainer.innerHTML = '';
+
+            if (files.length > 5) {
+                alert('Maximum 5 images allowed. First 5 will be used.');
+            }
+
+            let heicCount = 0;
+            files.slice(0, 5).forEach((file, index) => {
+                // Check if file is HEIC/HEIF
+                const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' || 
+                               file.name.toLowerCase().endsWith('.heic') || 
+                               file.name.toLowerCase().endsWith('.heif');
+
+                if (isHEIC) {
+                    heicCount++;
+                    if (typeof heic2any !== 'undefined') {
+                        // Try to convert HEIC to JPEG
+                        heic2any({ 
+                            blob: file, 
+                            toType: 'image/jpeg', 
+                            quality: 0.8 
+                        })
+                        .then(convertedBlob => {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                addPreviewImage(event.target.result, index, previewContainer);
+                            };
+                            reader.readAsDataURL(convertedBlob);
+                        })
+                        .catch(error => {
+                            console.error('HEIC conversion failed:', error);
+                            addHEICWarning(index, previewContainer);
+                        });
+                    } else {
+                        addHEICWarning(index, previewContainer);
+                    }
+                } else {
+                    // Regular image formats
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        addPreviewImage(event.target.result, index, previewContainer);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Show warning if HEIC files detected
+            if (heicCount > 0) {
+                setTimeout(() => {
+                    showHEICInstructions();
+                }, 500);
+            }
+        }
+
+        function addPreviewImage(src, index, container) {
+            const div = document.createElement('div');
+            div.className = 'image-preview-item';
+            div.innerHTML = `
+                <img src="${src}" alt="Preview ${index + 1}">
+                <button type="button" class="image-preview-remove" onclick="removePreviewImage(${index})">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function addHEICWarning(index, container) {
+            const div = document.createElement('div');
+            div.className = 'image-preview-item';
+            div.style.background = '#ffe6e6';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'center';
+            div.style.fontSize = '0.8em';
+            div.style.color = '#c92a2a';
+            div.style.textAlign = 'center';
+            div.style.padding = '5px';
+            div.innerHTML = `
+                <div>HEIC<br>Format<br>⚠️</div>
+                <button type="button" class="image-preview-remove" onclick="removePreviewImage(${index})">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function showHEICInstructions() {
+            const hasValidImages = document.querySelectorAll('.image-preview-item img').length > 0;
+            
+            if (!hasValidImages) {
+                alert(`📱 iPhone HEIC Photos Detected!\n\n` +
+                      `HEIC files may not display properly in all browsers.\n\n` +
+                      `✅ RECOMMENDED SOLUTION:\n` +
+                      `1. Open Photos app on iPhone\n` +
+                      `2. Select the photo(s)\n` +
+                      `3. Tap Share button\n` +
+                      `4. Choose "Save to Files" or "Copy Photo"\n` +
+                      `5. This converts them to JPEG automatically\n` +
+                      `6. Upload the converted photos\n\n` +
+                      `OR\n\n` +
+                      `Change iPhone settings:\n` +
+                      `Settings → Camera → Formats → "Most Compatible"`);
+            }
+        }
+
+        function removePreviewImage(index) {
+            const imageInput = document.getElementById('itemImage');
+            const dt = new DataTransfer();
+            const files = Array.from(imageInput.files);
+            
+            files.forEach((file, i) => {
+                if (i !== index) {
+                    dt.items.add(file);
+                }
+            });
+            
+            imageInput.files = dt.files;
+            handleImagePreview({ target: imageInput });
+        }
+
+        function saveConfig() {
+            const phone = document.getElementById('adminPhone').value.trim();
+            if (phone) {
+                adminPhone = phone;
+                localStorage.setItem('adminPhone', phone);
+                alert('✅ Contact configuration saved!');
+            } else {
+                alert('⚠️ Please enter a phone number');
+            }
+        }
+
+        function changePassword() {
+            const currentPwd = document.getElementById('currentPassword').value;
+            const newPwd = document.getElementById('newPassword').value;
+            
+            if (!currentPwd || !newPwd) {
+                alert('⚠️ Please fill in both password fields');
+                return;
+            }
+            
+            const storedPassword = localStorage.getItem('adminPassword') || 'admin123';
+            
+            if (currentPwd !== storedPassword) {
+                alert('❌ Current password is incorrect!');
+                return;
+            }
+            
+            if (newPwd.length < 6) {
+                alert('⚠️ New password must be at least 6 characters');
+                return;
+            }
+            
+            localStorage.setItem('adminPassword', newPwd);
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            alert('✅ Password changed successfully! Remember your new password.');
+        }
+
+        function toggleAdmin() {
+            if (!isAdminMode) {
+                const password = prompt('🔐 Enter Admin Password:');
+                const adminPassword = localStorage.getItem('adminPassword') || 'admin123';
+                
+                if (password !== adminPassword) {
+                    alert('❌ Incorrect password!');
+                    return;
+                }
+                
+                isAdminMode = true;
+            } else {
+                isAdminMode = false;
+            }
+            
+            const form = document.getElementById('adminForm');
+            form.classList.toggle('active');
+            
+            // Refresh display to show/hide admin buttons
+            const event = new Event('admin-toggle');
+            window.dispatchEvent(event);
+        }
+
+        function addListing(e) {
+            e.preventDefault();
+            
+            if (!window.isFirebaseConfigured) {
+                alert('⚠️ Firebase is not configured. Please set up Firebase first.');
+                return;
+            }
+            
+            if (!adminPhone) {
+                alert('⚠️ Please configure your phone number first!');
+                return;
+            }
+            
+            const title = document.getElementById('itemTitle').value;
+            const price = document.getElementById('itemPrice').value;
+            const description = document.getElementById('itemDescription').value;
+            const imageFiles = Array.from(document.getElementById('itemImage').files);
+            
+            if (imageFiles.length === 0) {
+                alert('Please select at least one image');
+                return;
+            }
+
+            if (imageFiles.length > 5) {
+                alert('Maximum 5 images allowed');
+                return;
+            }
+
+            // Check for HEIC files
+            const heicFiles = imageFiles.filter(file => 
+                file.type === 'image/heic' || 
+                file.type === 'image/heif' || 
+                file.name.toLowerCase().endsWith('.heic') || 
+                file.name.toLowerCase().endsWith('.heif')
+            );
+
+            if (heicFiles.length > 0) {
+                const proceed = confirm(
+                    `⚠️ ${heicFiles.length} HEIC file(s) detected.\n\n` +
+                    `HEIC files may not work properly. We recommend:\n\n` +
+                    `1. Share photos from iPhone Photos app\n` +
+                    `2. This auto-converts to JPEG\n` +
+                    `3. Then upload the converted files\n\n` +
+                    `Do you want to try uploading anyway?`
+                );
+                
+                if (!proceed) {
+                    return;
+                }
+            }
+            
+            // Disable submit button
+            const postBtn = document.getElementById('postBtn');
+            postBtn.disabled = true;
+            postBtn.textContent = '📤 Uploading...';
+            
+            // Process images with HEIC conversion attempt
+            const imagePromises = imageFiles.map((file, idx) => {
+                return new Promise((resolve, reject) => {
+                    const isHEIC = file.type === 'image/heic' || 
+                                   file.type === 'image/heif' || 
+                                   file.name.toLowerCase().endsWith('.heic') || 
+                                   file.name.toLowerCase().endsWith('.heif');
+
+                    if (isHEIC && typeof heic2any !== 'undefined') {
+                        // Try to convert HEIC to JPEG
+                        postBtn.textContent = `📤 Converting image ${idx + 1}...`;
+                        heic2any({ 
+                            blob: file, 
+                            toType: 'image/jpeg', 
+                            quality: 0.8 
+                        })
+                        .then(convertedBlob => {
+                            const reader = new FileReader();
+                            reader.onload = (event) => resolve(event.target.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(convertedBlob);
+                        })
+                        .catch(error => {
+                            console.error('HEIC conversion failed for image', idx + 1, error);
+                            reject(new Error(`Could not convert HEIC image ${idx + 1}. Please use JPEG format.`));
+                        });
+                    } else if (isHEIC) {
+                        // HEIC file but no converter available
+                        reject(new Error(`HEIC files are not supported. Please convert image ${idx + 1} to JPEG.`));
+                    } else {
+                        // Regular image formats
+                        const reader = new FileReader();
+                        reader.onload = (event) => resolve(event.target.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    }
+                });
+            });
+            
+            Promise.all(imagePromises)
+                .then(images => {
+                    postBtn.textContent = '📤 Saving to database...';
+                    
+                    const listing = {
+                        title: title,
+                        price: parseFloat(price),
+                        description: description,
+                        images: images,
+                        createdAt: new Date().toISOString(),
+                        sold: false
+                    };
+                    
+                    // Push to Firebase
+                    const listingsRef = window.firebaseRef(window.firebaseDB, 'listings');
+                    return window.firebasePush(listingsRef, listing);
+                })
+                .then(() => {
+                    // Reset form
+                    e.target.reset();
+                    document.getElementById('imagePreview').innerHTML = '';
+                    postBtn.disabled = false;
+                    postBtn.textContent = '📤 Post Item';
+                    alert('✅ Item posted successfully!');
+                })
+                .catch(error => {
+                    console.error('Error posting listing:', error);
+                    alert('❌ ' + (error.message || 'Error posting item. Please try again with JPEG images.'));
+                    postBtn.disabled = false;
+                    postBtn.textContent = '📤 Post Item';
+                });
+        }
+
+        function deleteListing(firebaseId) {
+            if (!window.isFirebaseConfigured) return;
+            
+            if (confirm('Are you sure you want to delete this item?')) {
+                const listingRef = window.firebaseRef(window.firebaseDB, `listings/${firebaseId}`);
+                window.firebaseRemove(listingRef)
+                    .then(() => {
+                        alert('✅ Item deleted successfully!');
+                    })
+                    .catch(error => {
+                        console.error('Error deleting listing:', error);
+                        alert('❌ Error deleting item. Please try again.');
+                    });
+            }
+        }
+
+        function toggleSold(firebaseId, currentStatus) {
+            if (!window.isFirebaseConfigured) return;
+            
+            const listingRef = window.firebaseRef(window.firebaseDB, `listings/${firebaseId}`);
+            window.firebaseUpdate(listingRef, { sold: !currentStatus })
+                .then(() => {
+                    if (!currentStatus) {
+                        alert('✅ Item marked as SOLD!');
+                    } else {
+                        alert('✅ Item marked as AVAILABLE!');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating listing:', error);
+                    alert('❌ Error updating item. Please try again.');
+                });
+        }
+
+        function expressInterest(listing) {
+            if (!adminPhone) {
+                alert('⚠️ Contact information not configured. Please contact the administrator.');
+                return;
+            }
+
+            const buyerName = prompt('Please enter your name:');
+            if (!buyerName) return;
+            
+            const buyerPhone = prompt('Please enter your phone number:');
+            if (!buyerPhone) return;
+            
+            const message = `Hi! I'm interested in: ${listing.title} ($${listing.price.toFixed(2)}). My name is ${buyerName} and my number is ${buyerPhone}.`;
+            const cleanPhone = adminPhone.replace(/\D/g, '');
+            const smsLink = `sms:${cleanPhone}${/iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(message)}`;
+            
+            window.location.href = smsLink;
+            
+            alert(`✅ Your default messaging app will open. Send the pre-filled message to express interest!\n\nIf it doesn't open automatically, please text:\n${adminPhone}\n\nWith message:\n"${message}"`);
+        }
+
+        window.displayListings = function(listings) {
+            const container = document.getElementById('listings');
+            
+            if (listings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                        <h3>No Items Yet</h3>
+                        <p>Items posted by the admin will appear here</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = listings.map(listing => {
+                const images = listing.images || [listing.image];
+                const imageGallery = images.length > 1 ? `
+                    <div class="image-gallery">
+                        ${images.map((img, idx) => `
+                            <img src="${img}" alt="${listing.title} - Image ${idx + 1}" 
+                                 class="gallery-image ${idx === 0 ? 'active' : ''}" 
+                                 data-listing="${listing.firebaseId}" 
+                                 data-index="${idx}">
+                        `).join('')}
+                        <button class="gallery-nav gallery-prev" onclick="changeImage('${listing.firebaseId}', -1)">‹</button>
+                        <button class="gallery-nav gallery-next" onclick="changeImage('${listing.firebaseId}', 1)">›</button>
+                        <div class="gallery-dots">
+                            ${images.map((_, idx) => `
+                                <span class="gallery-dot ${idx === 0 ? 'active' : ''}" 
+                                      onclick="goToImage('${listing.firebaseId}', ${idx})"
+                                      data-listing="${listing.firebaseId}"
+                                      data-index="${idx}"></span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="thumbnail-gallery">
+                        ${images.map((img, idx) => `
+                            <div class="thumbnail-item ${idx === 0 ? 'active' : ''}" 
+                                 onclick="goToImage('${listing.firebaseId}', ${idx})"
+                                 data-listing="${listing.firebaseId}"
+                                 data-index="${idx}">
+                                <img src="${img}" alt="Thumbnail ${idx + 1}">
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <img src="${images[0]}" alt="${listing.title}" class="listing-image">
+                `;
+
+                return `
+                <div class="listing-card ${listing.sold ? 'sold' : ''}">
+                    ${imageGallery}
+                    <div class="listing-content">
+                        <h3 class="listing-title">${listing.title}</h3>
+                        <div class="listing-price">$${listing.price.toFixed(2)}</div>
+                        <p class="listing-description">${listing.description}</p>
+                        ${!listing.sold ? `
+                            <button class="interest-btn" onclick='expressInterest(${JSON.stringify(listing).replace(/'/g, "&apos;")})'>
+                                💬 I'm Interested
+                            </button>
+                        ` : `
+                            <button class="interest-btn" style="background: var(--gray-400); cursor: not-allowed;" disabled>
+                                ❌ Item Sold
+                            </button>
+                        `}
+                        ${isAdminMode ? `
+                            <button class="btn sold-btn ${listing.sold ? 'mark-available' : ''}" onclick="toggleSold('${listing.firebaseId}', ${listing.sold})">
+                                ${listing.sold ? '🔄 Mark as Available' : '✅ Mark as SOLD'}
+                            </button>
+                            <button class="btn btn-danger delete-btn" onclick="deleteListing('${listing.firebaseId}')">🗑️ Delete</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `}).join('');
+        };
+
+        // Listen for admin mode changes
+        window.addEventListener('admin-toggle', () => {
+            // Trigger a re-render by dispatching a custom event
+            // This will be picked up by Firebase's onValue listener
+        });
+
+        // Gallery navigation functions
+        function changeImage(listingId, direction) {
+            const images = document.querySelectorAll(`img.gallery-image[data-listing="${listingId}"]`);
+            const dots = document.querySelectorAll(`span.gallery-dot[data-listing="${listingId}"]`);
+            const thumbnails = document.querySelectorAll(`div.thumbnail-item[data-listing="${listingId}"]`);
+            
+            let currentIndex = 0;
+            images.forEach((img, idx) => {
+                if (img.classList.contains('active')) {
+                    currentIndex = idx;
+                }
+            });
+            
+            let newIndex = currentIndex + direction;
+            if (newIndex < 0) newIndex = images.length - 1;
+            if (newIndex >= images.length) newIndex = 0;
+            
+            images[currentIndex].classList.remove('active');
+            images[newIndex].classList.add('active');
+            
+            dots[currentIndex].classList.remove('active');
+            dots[newIndex].classList.add('active');
+            
+            thumbnails[currentIndex].classList.remove('active');
+            thumbnails[newIndex].classList.add('active');
+            
+            // Scroll thumbnail into view
+            thumbnails[newIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        function goToImage(listingId, index) {
+            const images = document.querySelectorAll(`img.gallery-image[data-listing="${listingId}"]`);
+            const dots = document.querySelectorAll(`span.gallery-dot[data-listing="${listingId}"]`);
+            const thumbnails = document.querySelectorAll(`div.thumbnail-item[data-listing="${listingId}"]`);
+            
+            images.forEach(img => img.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            thumbnails.forEach(thumb => thumb.classList.remove('active'));
+            
+            images[index].classList.add('active');
+            dots[index].classList.add('active');
+            thumbnails[index].classList.add('active');
+            
+            // Scroll thumbnail into view
+            if (thumbnails[index]) {
+                thumbnails[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        window.changeImage = changeImage;
+        window.goToImage = goToImage;
+    </script>
+</body>
+</html>

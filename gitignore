@@ -1,0 +1,21 @@
+# Firebase Config - DO NOT COMMIT
+firebase-config.js
+
+# Environment files
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.swp
