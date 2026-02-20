@@ -345,6 +345,21 @@
             margin-bottom: 15px;
         }
 
+        .listing-description ul,
+        .listing-description ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        .listing-description li {
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+
+        .listing-description p {
+            margin: 8px 0;
+        }
+
         .interest-btn {
             background: var(--primary);
             color: white;
@@ -891,7 +906,10 @@
                     
                     <div class="form-group">
                         <label for="itemDescription">Description *</label>
-                        <textarea id="itemDescription" required placeholder="Describe the item's condition, size, features, etc."></textarea>
+                        <textarea id="itemDescription" required placeholder="Describe the item's condition, size, features, etc.&#10;&#10;Tip: Use bullet points by starting lines with '-', '*', or '•'&#10;Example:&#10;- Excellent condition&#10;- Barely used&#10;- Includes original box"></textarea>
+                        <small style="color: var(--gray-600); display: block; margin-top: 5px;">
+                            Start lines with <strong>-</strong>, <strong>*</strong>, or <strong>•</strong> for bullet points
+                        </small>
                     </div>
                     
                     <div class="form-group">
@@ -956,7 +974,10 @@
                 </div>
                 <div class="form-group">
                     <label for="editItemDescription">Description *</label>
-                    <textarea id="editItemDescription" required placeholder="Describe the item's condition, size, features, etc."></textarea>
+                    <textarea id="editItemDescription" required placeholder="Describe the item's condition, size, features, etc.&#10;&#10;Tip: Use bullet points by starting lines with '-', '*', or '•'"></textarea>
+                    <small style="color: var(--gray-600); display: block; margin-top: 5px;">
+                        Start lines with <strong>-</strong>, <strong>*</strong>, or <strong>•</strong> for bullet points
+                    </small>
                 </div>
                 <div class="form-group">
                     <label for="editItemImages">Update Photos (Optional, Max 5)</label>
@@ -2052,6 +2073,61 @@
             return true;
         }
 
+        function formatDescription(text) {
+            if (!text) return '';
+            
+            // Escape HTML first to prevent XSS
+            const escapeHtml = (str) => {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
+            
+            const escaped = escapeHtml(text);
+            
+            // Split by newlines
+            const lines = escaped.split(/\r?\n/);
+            let result = '';
+            let inList = false;
+            let listItems = [];
+            
+            const closeList = () => {
+                if (inList && listItems.length > 0) {
+                    result += '<ul>' + listItems.map(item => `<li>${item.trim()}</li>`).join('') + '</ul>';
+                    listItems = [];
+                    inList = false;
+                }
+            };
+            
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                
+                // Check for bullet points: starts with -, *, •, or number followed by .
+                const bulletMatch = trimmed.match(/^([-*•]|\d+\.)\s+(.+)$/);
+                
+                if (bulletMatch) {
+                    if (!inList) {
+                        closeList();
+                        inList = true;
+                    }
+                    listItems.push(bulletMatch[2]);
+                } else if (trimmed === '') {
+                    // Empty line closes list
+                    closeList();
+                    result += '<br>';
+                } else {
+                    // Regular text
+                    closeList();
+                    result += `<p>${trimmed}</p>`;
+                }
+            });
+            
+            // Close any remaining list
+            closeList();
+            
+            return result || `<p>${escaped}</p>`;
+        }
+
         window.displayListings = function(listings) {
             const container = document.getElementById('listings');
             
@@ -2110,7 +2186,7 @@
                     <div class="listing-content">
                         <h3 class="listing-title">${listing.title}</h3>
                         <div class="listing-price">$${listing.price.toFixed(2)}</div>
-                        <p class="listing-description">${listing.description}</p>
+                        <div class="listing-description">${formatDescription(listing.description)}</div>
                         ${!listing.sold ? `
                             <button class="interest-btn" onclick='expressInterest(${JSON.stringify(listing).replace(/'/g, "&apos;")})'>
                                 💬 I'm Interested
